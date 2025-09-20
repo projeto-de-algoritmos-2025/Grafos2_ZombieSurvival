@@ -97,14 +97,16 @@ def dijkstra(graph, start_node, end_node, status_messages):
     predecessors = {node: None for node in graph.nodes}
     pq = [(0, start_node)]
     visited = set()
-    yield {'visited': visited, 'current_node': start_node, 'predecessors': predecessors}
+    yield {'visited': visited, 'current_node': start_node, 'predecessors': predecessors, 'distances': distances}
     while pq:
         current_risk, current_node = heapq.heappop(pq)
         if current_risk > distances[current_node]: continue
         visited.add(current_node)
-        yield {'visited': visited, 'current_node': current_node, 'predecessors': predecessors}
+        yield {'visited': visited, 'current_node': current_node, 'predecessors': predecessors, 'distances': distances}
         if current_node == end_node:
+            total_cost = distances[end_node]
             status_messages.append("Caminho encontrado!")
+            status_messages.append(f"Você encontrou {total_cost} zumbis até o Laboratório. Boa sorte, vai precisar...")
             return
         for neighbor in graph.neighbors(current_node):
             if neighbor not in visited:
@@ -138,14 +140,22 @@ def draw(screen, font, graph, dijkstra_state, start_node, end_node, final_path, 
         pygame.draw.circle(screen, color, pos, 15)
         city_text = font.render(node, True, WHITE)
         screen.blit(city_text, (pos[0] - city_text.get_width() // 2, pos[1] + 20))
-    
-    # Status na parte inferior da tela
+        
+        # Distância em cima do nó
+        if 'distances' in dijkstra_state:
+            distance = dijkstra_state['distances'].get(node)
+            if distance is not None and distance != float('inf'):
+                dist_text_str = str(int(distance))
+                dist_text = font.render(dist_text_str, True, YELLOW)
+                text_rect = dist_text.get_rect(center=(pos[0], pos[1] - 25))
+                screen.blit(dist_text, text_rect)
+
     status_bg_rect = pygame.Rect(0, SCREEN_HEIGHT - 100, SCREEN_WIDTH, 100)
     pygame.draw.rect(screen, (30, 30, 30), status_bg_rect)
     pygame.draw.rect(screen, WHITE, status_bg_rect, 2)
     
     y_offset = SCREEN_HEIGHT - 90
-    for message in status_messages[-4:]:  # Mostra apenas as últimas 4 mensagens
+    for message in status_messages[-4:]:
         status_text = font.render(message, True, WHITE)
         screen.blit(status_text, (10, y_offset))
         y_offset += 20
@@ -174,7 +184,6 @@ def main():
     
     STEP_DELAY = 0.5
 
-    # Inicialização do jogo
     game_map, dijkstra_generator, dijkstra_state, final_path, algorithm_finished, last_step_time, status_messages = reset()
 
     running = True
@@ -198,7 +207,7 @@ def main():
                 while current is not None:
                     final_path.insert(0, current)
                     current = predecessors.get(current)
-                if final_path[0] != START_NODE:
+                if not final_path or final_path[0] != START_NODE:
                     status_messages.append("Não foi possível encontrar um caminho.")
                     final_path = []
         
