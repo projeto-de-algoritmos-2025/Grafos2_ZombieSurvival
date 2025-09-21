@@ -8,20 +8,25 @@ import math
 SCREEN_WIDTH = 1080
 SCREEN_HEIGHT = 720
 
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-GRAY = (100, 100, 100)
-GREEN = (0, 255, 0)
-RED = (255, 0, 0)
-YELLOW = (255, 255, 0)
-BLUE = (100, 100, 255)
+COLOR_BACKGROUND = (28, 32, 36)
+COLOR_PANEL_BG = (42, 48, 54)
+COLOR_TEXT = (210, 210, 210)
+COLOR_TEXT_SECONDARY = (140, 140, 140)
+COLOR_BORDER = (80, 88, 96)
+COLOR_EDGE = (60, 66, 72)
+
+COLOR_NODE_DEFAULT = (180, 180, 180)
+COLOR_START = (76, 175, 80)
+COLOR_END = (244, 67, 54)
+COLOR_VISITED = (255, 193, 7)
+COLOR_PATH = (76, 175, 80)
 
 def create_map(num_cities=15):
     G = nx.Graph()
 
     MIN_SEPARATION_DISTANCE = 150
-    STATUS_AREA_HEIGHT = 100  
-    GAME_AREA_HEIGHT = SCREEN_HEIGHT - STATUS_AREA_HEIGHT  
+    STATUS_AREA_HEIGHT = 100
+    GAME_AREA_HEIGHT = SCREEN_HEIGHT - STATUS_AREA_HEIGHT
     
     start_node_name = "Abrigo Seguro"
     end_node_name = "Laboratório da Cura"
@@ -105,8 +110,8 @@ def dijkstra(graph, start_node, end_node, status_messages):
         yield {'visited': visited, 'current_node': current_node, 'predecessors': predecessors, 'distances': distances}
         if current_node == end_node:
             total_cost = distances[end_node]
-            status_messages.append("Caminho encontrado!")
-            status_messages.append(f"Você encontrou {total_cost} zumbis até o Laboratório. Boa sorte, vai precisar...")
+            status_messages.append(">> Caminho encontrado!")
+            status_messages.append(f">> Você encontrou {total_cost} zumbis até o Laboratório. Boa sorte, vai precisar...")
             return
         for neighbor in graph.neighbors(current_node):
             if neighbor not in visited:
@@ -117,47 +122,58 @@ def dijkstra(graph, start_node, end_node, status_messages):
                     predecessors[neighbor] = current_node
                     heapq.heappush(pq, (new_risk, neighbor))
 
-def draw(screen, font, graph, dijkstra_state, start_node, end_node, final_path, status_messages):
-    screen.fill(BLACK)
+def draw(screen, fonts, graph, dijkstra_state, start_node, end_node, final_path, status_messages):
+    screen.fill(COLOR_BACKGROUND)
+    
     for u, v, data in graph.edges(data=True):
         pos_u, pos_v = graph.nodes[u]['pos'], graph.nodes[v]['pos']
-        pygame.draw.line(screen, GRAY, pos_u, pos_v, 2)
-        risk_text = font.render(str(data['risk']), True, WHITE)
-        mid_pos = ((pos_u[0] + pos_v[0]) / 2, (pos_u[1] + pos_v[1]) / 2 - 20)
-        screen.blit(risk_text, mid_pos)
+        pygame.draw.aaline(screen, COLOR_EDGE, pos_u, pos_v)
+        
+        risk_value = str(data['risk'])
+        risk_text = fonts['tiny'].render(risk_value, True, COLOR_TEXT_SECONDARY)
+        
+        mid_pos_x = (pos_u[0] + pos_v[0]) / 2
+        mid_pos_y = (pos_u[1] + pos_v[1]) / 2 - 15
+        
+        text_rect = risk_text.get_rect(center=(mid_pos_x, mid_pos_y))
+        screen.blit(risk_text, text_rect)
+
     if final_path:
         for i in range(len(final_path) - 1):
             pos1, pos2 = graph.nodes[final_path[i]]['pos'], graph.nodes[final_path[i+1]]['pos']
-            pygame.draw.line(screen, GREEN, pos1, pos2, 5)
+            pygame.draw.line(screen, COLOR_PATH, pos1, pos2, 4)
+
     for node, data in graph.nodes(data=True):
         pos = data['pos']
-        color = BLUE
-        if 'visited' in dijkstra_state and node in dijkstra_state['visited']: color = YELLOW
-        if 'current_node' in dijkstra_state and node == dijkstra_state['current_node']: color = RED
-        if node == start_node: color = GREEN
-        elif node == end_node: color = RED
-        if final_path and node in final_path: color = GREEN
-        pygame.draw.circle(screen, color, pos, 15)
-        city_text = font.render(node, True, WHITE)
-        screen.blit(city_text, (pos[0] - city_text.get_width() // 2, pos[1] + 20))
+        color = COLOR_NODE_DEFAULT
+        radius = 10
         
-        # Distância em cima do nó
+        if 'visited' in dijkstra_state and node in dijkstra_state['visited']: color = COLOR_VISITED
+        if node == start_node: color = COLOR_START
+        elif node == end_node: color = COLOR_END
+        if final_path and node in final_path: color = COLOR_PATH
+
+        pygame.draw.circle(screen, color, pos, radius)
+
+        city_text = fonts['small'].render(node, True, COLOR_TEXT)
+        screen.blit(city_text, (pos[0] - city_text.get_width() // 2, pos[1] + 18))
+        
         if 'distances' in dijkstra_state:
             distance = dijkstra_state['distances'].get(node)
             if distance is not None and distance != float('inf'):
                 dist_text_str = str(int(distance))
-                dist_text = font.render(dist_text_str, True, YELLOW)
-                text_rect = dist_text.get_rect(center=(pos[0], pos[1] - 25))
+                dist_text = fonts['tiny'].render(dist_text_str, True, COLOR_TEXT_SECONDARY)
+                text_rect = dist_text.get_rect(center=(pos[0], pos[1] - 20))
                 screen.blit(dist_text, text_rect)
 
     status_bg_rect = pygame.Rect(0, SCREEN_HEIGHT - 100, SCREEN_WIDTH, 100)
-    pygame.draw.rect(screen, (30, 30, 30), status_bg_rect)
-    pygame.draw.rect(screen, WHITE, status_bg_rect, 2)
+    pygame.draw.rect(screen, COLOR_PANEL_BG, status_bg_rect)
+    pygame.draw.line(screen, COLOR_BORDER, (0, SCREEN_HEIGHT - 100), (SCREEN_WIDTH, SCREEN_HEIGHT - 100), 2)
     
-    y_offset = SCREEN_HEIGHT - 90
+    y_offset = SCREEN_HEIGHT - 85
     for message in status_messages[-4:]:
-        status_text = font.render(message, True, WHITE)
-        screen.blit(status_text, (10, y_offset))
+        status_text = fonts['default'].render(message, True, COLOR_TEXT)
+        screen.blit(status_text, (15, y_offset))
         y_offset += 20
 
 def main():
@@ -165,13 +181,26 @@ def main():
     pygame.font.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Missão: A Cura Zumbi")
-    font = pygame.font.SysFont('Consolas', 18)
+    
+    try:
+        fonts = {
+            'default': pygame.font.Font("VT323-Regular.ttf", 22),
+            'small': pygame.font.Font("VT323-Regular.ttf", 16),
+            'tiny': pygame.font.Font("VT323-Regular.ttf", 14),
+        }
+    except FileNotFoundError:
+        print("AVISO: Fonte 'VT323-Regular.ttf' não encontrada. Usando fonte do sistema.")
+        fonts = {
+            'default': pygame.font.SysFont('Consolas', 18),
+            'small': pygame.font.SysFont('Consolas', 14),
+            'tiny': pygame.font.SysFont('Consolas', 12),
+        }
+
 
     def reset():
-        random.seed()  
+        random.seed()
         game_map = create_map()
-        status_messages = []
-        status_messages.append(f"Missão iniciada: Encontrar o caminho de '{START_NODE}' para '{END_NODE}'")
+        status_messages = [f">> Missão: Ir de '{START_NODE}' para '{END_NODE}'."]
         dijkstra_generator = dijkstra(game_map, START_NODE, END_NODE, status_messages)
         dijkstra_state = {}
         final_path = []
@@ -193,7 +222,6 @@ def main():
                 running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    # Gera novo mapa quando ESPAÇO é pressionado
                     game_map, dijkstra_generator, dijkstra_state, final_path, algorithm_finished, last_step_time, status_messages = reset()
         
         if not algorithm_finished and time.time() - last_step_time > STEP_DELAY:
@@ -202,18 +230,19 @@ def main():
                 dijkstra_state = next(dijkstra_generator)
             except StopIteration:
                 algorithm_finished = True
-                predecessors = dijkstra_state['predecessors']
+                predecessors = dijkstra_state.get('predecessors', {})
                 current = END_NODE
-                while current is not None:
-                    final_path.insert(0, current)
-                    current = predecessors.get(current)
-                if not final_path or final_path[0] != START_NODE:
-                    status_messages.append("Não foi possível encontrar um caminho.")
-                    final_path = []
+                if current in predecessors or current == START_NODE:
+                    while current is not None:
+                        final_path.insert(0, current)
+                        current = predecessors.get(current)
+                    if not final_path or final_path[0] != START_NODE:
+                        status_messages.append(">> ERRO: Rota para o laboratório não encontrada.")
+                        final_path = []
         
-        draw(screen, font, game_map, dijkstra_state, START_NODE, END_NODE, final_path, status_messages)
+        draw(screen, fonts, game_map, dijkstra_state, START_NODE, END_NODE, final_path, status_messages)
         
-        instruction_text = font.render("Pressione ESPAÇO para gerar novo mapa", True, WHITE)
+        instruction_text = fonts['small'].render("Pressione [ESPAÇO] para gerar um novo mapa", True, COLOR_TEXT_SECONDARY)
         screen.blit(instruction_text, (10, 10))
         
         pygame.display.flip()
