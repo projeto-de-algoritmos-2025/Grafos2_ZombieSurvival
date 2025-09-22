@@ -265,19 +265,11 @@ def main():
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Missão: A Cura Zumbi")
     
-    try:
-        fonts = {
-            'default': pygame.font.Font("VT323-Regular.ttf", 22),
-            'small': pygame.font.Font("VT323-Regular.ttf", 16),
-            'tiny': pygame.font.Font("VT323-Regular.ttf", 14),
-        }
-    except FileNotFoundError:
-        print("AVISO: Fonte 'VT323-Regular.ttf' não encontrada. Usando fonte do sistema.")
-        fonts = {
-            'default': pygame.font.SysFont('Consolas', 18),
-            'small': pygame.font.SysFont('Consolas', 14),
-            'tiny': pygame.font.SysFont('Consolas', 12),
-        }
+    fonts = {
+        'default': pygame.font.SysFont('Consolas', 18),
+        'small': pygame.font.SysFont('Consolas', 14),
+        'tiny': pygame.font.SysFont('Consolas', 12),
+    }
 
 
     def reset(algorithm='dijkstra'):
