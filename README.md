@@ -6,6 +6,8 @@
 
 Este projeto implementa uma **visualização interativa de algoritmos de caminho mais curto** em grafos, utilizando uma temática de sobrevivência zumbi para tornar o aprendizado mais envolvente. O objetivo é comparar visualmente o comportamento dos algoritmos **Dijkstra** e **A*** em cenários de busca de rotas.
 
+Link da apresentação do projeto: [Grafos2_ZombieSurvival](https://youtu.be/2qDmSdwQDoo)
+
 ### Missão
 
 Você está em um mundo pós-apocalíptico infestado de zumbis. Sua missão é encontrar o caminho mais seguro (com menor número de zumbis) do **"Abrigo Seguro"** até o **"Laboratório da Cura"**, navegando por uma rede de cidades interconectadas.
